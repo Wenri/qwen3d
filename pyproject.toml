@@ -1,0 +1,150 @@
+# Pixi manifest for Qwen-3D (https://pixi.sh), kept in pyproject.toml ([tool.pixi.*]).
+#
+#   pixi install        # Python 3.12, PyTorch 2.12.1 (CUDA 12.9), compiled extensions
+#   pixi run setup      # one-time: NLTK stopwords corpus
+#   pixi run check      # smoke test: CUDA, compiled ops, key imports
+#   pixi shell          # enter the environment (PYTHONPATH / CUDA_HOME preset)
+#
+# Design:
+#   * Everything that exists on conda-forge comes from conda-forge, including the
+#     PyTorch stack (all "cuda129" builds: pytorch, torchvision, pytorch3d,
+#     torch_scatter, detectron2) and the toolchain (CUDA 12.9 nvcc with headers and
+#     libraries, GCC 14). The environment needs no system CUDA toolkit or compiler,
+#     only an NVIDIA driver.
+#   * Only three packages come from PyPI: libs/pointops2 (compiled here against the
+#     conda PyTorch, replacing `bash docs/init.sh`), pyviz3d and pycococreatortools.
+#   * Versions follow requirements.txt; exact pins are kept where the code depends
+#     on library internals (transformers, peft, ...). pixi.lock pins the rest.
+
+[project]
+name = "qwen3d"
+version = "0.1.0"
+description = "Qwen-3D: A Generalist 3D Vision-Language Model for Spatial Understanding"
+readme = "README.md"
+requires-python = "==3.12.*"
+# Dependencies are declared for pixi in [tool.pixi.dependencies] and
+# [tool.pixi.pypi-dependencies] below. The code is run from the repository root
+# (PYTHONPATH); it is not installed as a package.
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+# `cuda = "12"`: the environment needs a CUDA 12-capable NVIDIA driver (conda-forge's
+# CUDA 12.9 packages declare `__cuda >=12`). On a machine without a driver, e.g. a
+# cluster login node, run pixi with CONDA_OVERRIDE_CUDA=12.
+platforms = [{ platform = "linux-64", cuda = "12" }]
+
+[tool.pixi.activation.env]
+# Replaces `export PYTHONPATH=$PWD` from docs/init.sh (qwen3d, libs, data_preparation
+# and tools are imported from the repository root).
+PYTHONPATH = "$PIXI_PROJECT_ROOT"
+# The CUDA toolkit and the compilers live in the environment prefix:
+# torch.utils.cpp_extension reads CUDA_HOME, CMake reads CUDACXX / CUDAHOSTCXX, and
+# the conda compiler packages export CC / CXX themselves on activation.
+CUDA_HOME = "$CONDA_PREFIX"
+CUDA_PATH = "$CONDA_PREFIX"
+CUDACXX = "$CONDA_PREFIX/bin/nvcc"
+CUDAHOSTCXX = "$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-c++"
+# GPU architectures for extensions built with torch.utils.cpp_extension
+# (A100 / A6000 / L40S / H100). libs/pointops2 hard-codes its own -gencode flags.
+TORCH_CUDA_ARCH_LIST = "8.0;8.6;8.9;9.0"
+
+[tool.pixi.dependencies]
+python = "3.12.*"
+
+# --- PyTorch stack: CUDA 12.9 builds ------------------------------------------
+cuda-version = "12.9.*"
+pytorch = { version = "==2.12.1", build = "cuda129*" }
+torchvision = { version = "==0.27.1", build = "cuda129*" }
+# conda-forge packages detectron2 v0.6 (plus compatibility patches) built for
+# PyTorch 2.12 / CUDA 12.9. README.md installs a newer git commit with pip instead;
+# to do the same here, move detectron2 to [tool.pixi.pypi-dependencies] as
+# { git = "https://github.com/facebookresearch/detectron2.git", rev = "<commit>" }
+# and add "detectron2" to pypi-options.no-build-isolation.
+detectron2 = { version = "==0.6", build = "cuda129*" }
+# README installs pytorch3d@stable (= v0.7.8); 0.7.9 is the conda-forge build for
+# PyTorch 2.12 (the code only uses pytorch3d.ops.knn_points).
+pytorch3d = { version = "==0.7.9", build = "cuda129*" }
+pytorch_scatter = { version = "==2.1.2", build = "cuda129*" } # import name: torch_scatter
+numpy = "1.26.*"
+
+# --- Self-contained toolchain for compiling CUDA extensions (libs/pointops2) ----
+cuda-nvcc = "12.9.*"            # nvcc (+ cudart / driver headers); uses the GCC below
+cuda-libraries-dev = "12.9.*"   # cuBLAS, cuSPARSE, cuSOLVER, ... headers/libs (ATen needs them)
+gcc_linux-64 = "14.*"           # CUDA 12.9 supports host GCC <= 14
+gxx_linux-64 = "14.*"
+ninja = "*"
+setuptools = "*"
+wheel = "*"
+pip = "*"
+git = "*"
+
+# --- Hugging Face / model code (exact pins: the code patches library internals) --
+transformers = "==4.51.1"
+tokenizers = "==0.21.4"
+accelerate = "==1.13.0"
+peft = "==0.19.1"
+timm = "==1.0.28"
+datasets = "==5.0.0"
+huggingface_hub = ">=0.34,<1"   # provides the `hf` CLI used for checkpoint downloads
+safetensors = ">=0.7.0"
+einops = ">=0.8.2"
+
+# --- Vision / evaluation --------------------------------------------------------
+py-opencv = { version = ">=4.11,<5", build = "headless*" } # cv2; resolves to 4.13, the build sharing PyTorch's libprotobuf
+pillow = ">=12.2"
+imageio = ">=2.37"
+matplotlib-base = ">=3.10.9"
+pycocotools = ">=2.0.11"
+pycocoevalcap = "==1.2"
+fvcore = "0.1.5.*"
+spacy = "3.8.*"
+spacy-model-en_core_web_sm = "3.8.*"   # replaces `python -m spacy download en_core_web_sm`
+nltk = ">=3.9.4"
+
+# --- Scientific / data / IO -------------------------------------------------------
+pandas = ">=3.0.3,<4"
+scipy = ">=1.17.1"
+scikit-learn = ">=1.9"
+scikit-image = "*"              # pycococreatortools (data_preparation)
+plyfile = ">=1.1"
+trimesh = ">=4.12.2,<5"
+natsort = ">=8.4"
+prettytable = ">=3.17"
+tabulate = ">=0.10"
+termcolor = ">=3.3"
+tqdm = ">=4.67.3"
+pyyaml = ">=6.0.3"
+psutil = "*"
+gdown = ">=6.1"                 # docs/DATA.md
+
+# --- Logging / debugging --------------------------------------------------------
+wandb = ">=0.27.2"
+tensorboard = ">=2.20"
+torchinfo = ">=1.8"
+viztracer = ">=1.1.1"
+rich = "*"
+ipython = "*"
+ipdb = "*"
+
+# --- data_preparation scripts ---------------------------------------------------
+fire = "*"
+munch = "*"
+loguru = "*"
+lz4 = "*"
+
+[tool.pixi.pypi-options]
+# Built against the conda PyTorch / CUDA toolchain above instead of an isolated env.
+no-build-isolation = ["pointops2"]
+
+[tool.pixi.pypi-dependencies]
+# Custom point-cloud CUDA ops from this repo (what docs/init.sh used to compile).
+pointops2 = { path = "libs/pointops2" }
+# Not available on conda-forge.
+pyviz3d = "~=0.3.6"
+pycococreatortools = { git = "https://github.com/waspinator/pycococreator.git", tag = "0.2.1" } # data_preparation/*2coco.py
+
+[tool.pixi.tasks]
+setup = { cmd = "python -c \"import nltk; nltk.download('stopwords')\"", description = "One-time download of the NLTK stopwords corpus (RefCOCO loaders)" }
+check = { cmd = "python scripts/check_env.py", description = "Smoke-test the environment: CUDA, compiled extensions, key imports" }
+download-ckpt = { cmd = "hf download katefgroup/Qwen-3D qwen3d_{{ size }}.pth --local-dir ckpts", args = [{ arg = "size", default = "3b" }], description = "Download a pretrained checkpoint into ckpts/ (size: 3b or 7b)" }
+train = { cmd = "bash -c 'source scripts/setup.sh && configure_local && exec bash scripts/main_qwen.sh \"$@\"' --", description = "Local run of scripts/main_qwen.sh; env vars (BS, EVAL_ONLY, ...) go before `pixi run`, config overrides after `--`" }

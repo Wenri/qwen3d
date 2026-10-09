@@ -33,7 +33,7 @@ You can download some pre-computed data required for vision-language grounding a
 ```bash
 hf download katefgroup/UniVLG --include "scannet/*" --local-dir . && mv scannet/* . && rmdir scannet
 ```
-Then later, point `PRECOMPUTED_SCANNET_PATH` to this folder in scripts/main.sh. This is described later also.
+Then later, point `PRECOMPUTED_SCANNET_PATH` to this folder in `scripts/main_qwen.sh`. This is described later also.
 
 If you want to generate it from scratch, see below.
 
@@ -47,7 +47,8 @@ DATA_PATH="..."
 
 To pre-compute span predictions:
 ```bash
-uv run accelerate launch --main_process_port $RANDOM tools/generate_predicted_spans.py
+# inside `pixi shell` (or the conda environment)
+accelerate launch --main_process_port $RANDOM tools/generate_predicted_spans.py
 ```
 
 ## 2D Datasets
@@ -62,11 +63,11 @@ Inside of it, download the following:
 - Download the 3D pointmap data for COCO dataset:
 
 ```bash
-uvx --from huggingface_hub huggingface-cli download katefgroup/UniVLG_ScanNet_MonoDepth --local-dir data/datasets_2d/coco_3d_moge
+hf download katefgroup/UniVLG_ScanNet_MonoDepth --local-dir data/datasets_2d/coco_3d_moge
 ```
 
 ## Dataset & checkpoint paths
-Set these variables in `main.sh` to point at your local setup:
+Set these variables in `scripts/main_qwen.sh` to point at your local setup:
 | Variable | Description |
 |---|---|
 | `CKPTS_PATH` | Path to checkpoints |

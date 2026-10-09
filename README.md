@@ -24,6 +24,24 @@ Carnegie Mellon University
 
 ## Installation
 
+### With pixi
+
+The `[tool.pixi]` tables in `pyproject.toml`, together with `pixi.lock`, reproduce the environment below with [pixi](https://pixi.sh) in one step. Everything comes from conda-forge: Python 3.12, the PyTorch 2.12.1 / CUDA 12.9 stack (torchvision, pytorch3d, torch_scatter, detectron2), the spaCy model and the toolchain used to compile `libs/pointops2` during the install (CUDA 12.9 nvcc, headers and libraries, GCC 14). No system CUDA toolkit, compiler or conda is needed, only Linux x86-64 and an NVIDIA driver that supports CUDA 12. The environment takes about 13 GB.
+
+```bash
+curl -fsSL https://pixi.sh/install.sh | sh   # once, if pixi is not installed
+pixi install        # creates .pixi/envs/default and compiles libs/pointops2
+pixi run setup      # one-time: NLTK stopwords corpus
+pixi run check      # smoke test: CUDA, compiled ops, imports
+pixi shell          # activate the environment; PYTHONPATH and CUDA_HOME are preset
+```
+
+Inside `pixi shell` the commands in [docs/RUN.md](docs/RUN.md) work unchanged. Other tasks: `pixi run download-ckpt 7b` fetches a checkpoint into `ckpts/` (default `3b`), and `pixi run train -- <config overrides>` runs `scripts/main_qwen.sh` locally (environment variables such as `BS=1 EVAL_ONLY=1` go before `pixi run`). On a machine without an NVIDIA driver, e.g. a cluster login node, prefix pixi commands with `CONDA_OVERRIDE_CUDA=12`.
+
+Differences from the manual setup below: detectron2 is conda-forge's v0.6 build (plus compatibility patches, built for PyTorch 2.12) instead of the git commit pinned in `requirements.txt` (the comments in `pyproject.toml` show how to switch), pytorch3d is 0.7.9 instead of the `stable` tag (0.7.8), OpenCV is 4.13, and `data_preparation/refexp/estimate_moge.py` needs [MoGe](https://github.com/microsoft/MoGe), which requires NumPy 2 and is therefore not included.
+
+### Manual (conda + pip)
+
 Install dependencies:
 ```bash
 conda create -n qwen3d python=3.12

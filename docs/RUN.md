@@ -1,6 +1,8 @@
 # Training
 
-You can use [this script](../hf_down.py) to download Qwen2.5-VL weights to your local cache prior to training.
+All commands below are run from the repository root inside the project environment: `pixi shell` (see the [installation section](../README.md#installation)), or the manually created conda environment with `PYTHONPATH` set to the repository root. With pixi, `pixi run train -- <config overrides>` is equivalent to `source scripts/setup.sh && configure_local && bash scripts/main_qwen.sh <config overrides>`; environment variables such as `BS=1 EVAL_ONLY=1` go before `pixi run`.
+
+You can use [this script](hf_down.py) to download Qwen2.5-VL weights to your local cache prior to training.
 
 ## Qwen backbone (`QWEN_MODEL`)
 

@@ -1,6 +1,8 @@
 # vlm4d conda environment (Python 3.12)
 # Snapshot of packages installed in the working vlm4d env.
 #
+# With pixi, `pixi install` (pyproject.toml + pixi.lock) replaces steps 1-4 below.
+#
 # Recommended install order:
 #   1. Create conda env: conda create -n vlm4d python=3.12
 #   2. Install PyTorch matching your CUDA (this env uses torch 2.12 + cu130)

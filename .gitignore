@@ -216,3 +216,5 @@ output
 outputs
 *.nfs*
 *.json
+# pixi environments
+.pixi/

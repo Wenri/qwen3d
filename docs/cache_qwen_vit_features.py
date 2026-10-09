@@ -10,13 +10,13 @@ features as bfloat16 ``.pt`` tensors, matching
 Examples
 --------
 # 3B features -> /data/user_data/lucylin/scannet_qwen_feat_3b
-python scripts/cache_qwen_vit_features.py --model 3b
+python docs/cache_qwen_vit_features.py --model 3b
 
 # 7B features -> /data/user_data/lucylin/scannet_qwen_7b
-python scripts/cache_qwen_vit_features.py --model 7b
+python docs/cache_qwen_vit_features.py --model 7b
 
 # Shard across 4 jobs (e.g. 4 GPUs / SLURM array tasks)
-python scripts/cache_qwen_vit_features.py --model 3b --shard-id 0 --num-shards 4
+python docs/cache_qwen_vit_features.py --model 3b --shard-id 0 --num-shards 4
 """
 
 from __future__ import annotations
